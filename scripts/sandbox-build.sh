@@ -31,9 +31,10 @@ if [[ -z "${HTTPS_PROXY:-}" ]]; then
 fi
 
 # --- Defaults ---
-GRADLE_ARGS=("${@:-}")
-if [[ ${#GRADLE_ARGS[@]} -eq 0 ]]; then
+if [[ $# -eq 0 ]]; then
     GRADLE_ARGS=(build --no-configuration-cache)
+else
+    GRADLE_ARGS=("$@")
 fi
 
 cleanup() {
