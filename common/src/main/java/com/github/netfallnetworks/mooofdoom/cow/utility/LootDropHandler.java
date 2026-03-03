@@ -3,7 +3,6 @@ package com.github.netfallnetworks.mooofdoom.cow.utility;
 import com.github.netfallnetworks.mooofdoom.config.ModConfigValues;
 import com.github.netfallnetworks.mooofdoom.cow.OpCowManager;
 import com.github.netfallnetworks.mooofdoom.rarity.RarityTier;
-import com.github.netfallnetworks.mooofdoom.rarity.TieredRandom;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -26,7 +25,7 @@ public class LootDropHandler {
         if (cow.getRandom().nextInt(ModConfigValues.dropIntervalTicks) != 0) return;
 
         // Roll tiered loot (same table as death rare drops)
-        RarityTier tier = TieredRandom.roll(cow.getRandom());
+        RarityTier tier = ModConfigValues.rollRarity(cow.getRandom().nextInt(ModConfigValues.rarityTotalWeight()));
         CombatLootHandler.dropTieredLoot(cow, tier);
 
         // Sparkle effect

@@ -3,7 +3,6 @@ package com.github.netfallnetworks.mooofdoom.cow.utility;
 import com.github.netfallnetworks.mooofdoom.config.ModConfigValues;
 import com.github.netfallnetworks.mooofdoom.cow.OpCowManager;
 import com.github.netfallnetworks.mooofdoom.rarity.RarityTier;
-import com.github.netfallnetworks.mooofdoom.rarity.TieredRandom;
 import com.github.netfallnetworks.mooofdoom.registry.ModItems;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -54,7 +53,7 @@ public class MilkingHandler {
     }
 
     private static Item rollBuffBucket(Cow cow) {
-        RarityTier tier = TieredRandom.roll(cow.getRandom());
+        RarityTier tier = ModConfigValues.rollRarity(cow.getRandom().nextInt(ModConfigValues.rarityTotalWeight()));
         return switch (tier) {
             case COMMON -> ModItems.BUCKET_OF_SPEED.get();
             case UNCOMMON -> ModItems.BUCKET_OF_REGENERATION.get();

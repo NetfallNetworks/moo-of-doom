@@ -33,7 +33,7 @@ jobs:
         id: build
         run: |
           set +e
-          ./gradlew build --no-configuration-cache --stacktrace --console=plain > build-output.log 2>&1
+          ./gradlew build --no-configuration-cache --no-build-cache --stacktrace --console=plain > build-output.log 2>&1
           BUILD_EXIT=$?
           set -e
           cat build-output.log
