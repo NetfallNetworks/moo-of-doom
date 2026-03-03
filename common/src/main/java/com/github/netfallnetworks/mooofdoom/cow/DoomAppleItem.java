@@ -1,8 +1,8 @@
 package com.github.netfallnetworks.mooofdoom.cow;
 
 import com.github.netfallnetworks.mooofdoom.MooOfDoom;
+import com.github.netfallnetworks.mooofdoom.config.ModConfigValues;
 import com.github.netfallnetworks.mooofdoom.rarity.RarityTier;
-import com.github.netfallnetworks.mooofdoom.rarity.TieredRandom;
 import com.github.netfallnetworks.mooofdoom.registry.ModEffects;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -25,7 +25,7 @@ public class DoomAppleItem extends Item {
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
         if (!level.isClientSide() && entity instanceof Player player) {
-            RarityTier tier = TieredRandom.roll(player.getRandom());
+            RarityTier tier = ModConfigValues.rollRarity(player.getRandom().nextInt(ModConfigValues.rarityTotalWeight()));
             applyPlayerEffect(player, tier);
             MooOfDoom.LOGGER.info("Player {} ate Doom Apple — rolled {}", player.getName().getString(), tier);
         }

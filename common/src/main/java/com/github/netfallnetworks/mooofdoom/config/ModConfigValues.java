@@ -1,5 +1,8 @@
 package com.github.netfallnetworks.mooofdoom.config;
 
+import com.github.netfallnetworks.mooofdoom.rarity.RarityTier;
+import com.github.netfallnetworks.mooofdoom.rarity.TieredRandom;
+
 public final class ModConfigValues {
     // --- Activation ---
     public static ActivationMode activationMode = ActivationMode.ITEM_ACTIVATED;
@@ -48,6 +51,19 @@ public final class ModConfigValues {
     public static int rarityRareWeight = 15;
     public static int rarityLegendaryWeight = 4;
     public static int rarityMythicWeight = 1;
+
+    /** Sum of all rarity weights. */
+    public static int rarityTotalWeight() {
+        return rarityCommonWeight + rarityUncommonWeight + rarityRareWeight
+                + rarityLegendaryWeight + rarityMythicWeight;
+    }
+
+    /** Roll a rarity tier using the configured weights. */
+    public static RarityTier rollRarity(int randomValue) {
+        return TieredRandom.roll(randomValue,
+                rarityCommonWeight, rarityUncommonWeight,
+                rarityRareWeight, rarityLegendaryWeight, rarityMythicWeight);
+    }
 
     private ModConfigValues() {}
 

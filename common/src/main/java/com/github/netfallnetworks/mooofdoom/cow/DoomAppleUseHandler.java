@@ -1,8 +1,8 @@
 package com.github.netfallnetworks.mooofdoom.cow;
 
 import com.github.netfallnetworks.mooofdoom.MooOfDoom;
+import com.github.netfallnetworks.mooofdoom.config.ModConfigValues;
 import com.github.netfallnetworks.mooofdoom.rarity.RarityTier;
-import com.github.netfallnetworks.mooofdoom.rarity.TieredRandom;
 import com.github.netfallnetworks.mooofdoom.registry.ModCriteriaTriggers;
 import com.github.netfallnetworks.mooofdoom.registry.ModItems;
 import net.minecraft.server.level.ServerPlayer;
@@ -77,7 +77,7 @@ public class DoomAppleUseHandler {
             player.getItemInHand(hand).shrink(1);
         }
 
-        RarityTier tier = TieredRandom.roll(player.getRandom());
+        RarityTier tier = ModConfigValues.rollRarity(player.getRandom().nextInt(ModConfigValues.rarityTotalWeight()));
         MobConversionHandler.applyHostileConversion(monster, player, tier);
 
         // Advancement: converted a hostile mob

@@ -83,11 +83,11 @@ jobs:
 
       - name: Build and Test
         id: build
-        run: ./gradlew build --no-configuration-cache
+        run: ./gradlew build --no-configuration-cache --no-build-cache
 
       - name: Retry Build and Test
         if: failure() && steps.build.outcome == 'failure'
-        run: ./gradlew build --no-configuration-cache
+        run: ./gradlew build --no-configuration-cache --no-build-cache
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
