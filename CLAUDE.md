@@ -51,13 +51,9 @@ Do NOT push if the build fails. Fix all compilation errors and test failures fir
 
 ## Project Structure
 
-Multi-module Gradle project (`common` + `neoforge`):
-
-- `common/src/main/java/` — platform-agnostic game logic, handlers, items, registries
-- `common/src/test/java/` — unit tests (JUnit 5)
-- `common/src/main/resources/` — assets, data (lang, textures, advancements, recipes)
-- `neoforge/src/main/java/.../neoforge/` — NeoForge entry point, event dispatcher, config
-- `neoforge/src/main/templates/META-INF/neoforge.mods.toml` — mod metadata template
+- `src/main/java/com/github/netfallnetworks/mooofdoom/` — mod source code
+- `src/test/java/` — unit tests (JUnit 5)
+- `src/main/templates/META-INF/neoforge.mods.toml` — mod metadata template
 - `gradle.properties` — version numbers, mod metadata
 - `scripts/` — build utilities (proxy relay for sandbox environments)
 

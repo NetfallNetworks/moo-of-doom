@@ -3,27 +3,18 @@
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Restructure Moo of Doom from a single-project NeoForge mod into a
-`common` + `neoforge` multi-module Gradle project. NeoForge remains the only
-loader — Fabric is added later in a separate effort once this architecture is
-proven.
+`common` + `neoforge` multi-module Gradle project using Architectury Loom.
+NeoForge remains the only loader — Fabric is added later in a separate effort
+once this architecture is proven.
 
 **Architecture:** Gradle multi-project with two modules. `common` holds all
 game logic, items, goals, registry definitions, and tests. `neoforge` holds
 only NeoForge-specific wiring: entry point, event subscriptions, config spec,
-and client setup. Both modules use `net.neoforged.moddev` for the Minecraft
-toolchain; registries stay as NeoForge `DeferredRegister` in common/ for now
-and will be abstracted when the Fabric module is added.
+and client setup. Architectury Loom provides the Minecraft toolchain for both
+modules and sets the stage for a future `fabric` module.
 
-**Tech Stack:** NeoForge ModDev 2.0.140, NeoForge 21.11.38-beta, Gradle 9.x,
+**Tech Stack:** Architectury Loom, Architectury API, NeoForge, Gradle 9.x,
 Java 21, JUnit 5
-
-> **Implementation note (2026-02-27):** Originally planned to use Architectury
-> Loom + API, but `maven.architectury.dev` is unreachable from CI/dev
-> environments. Pivoted to NeoForge's own `net.neoforged.moddev` plugin for
-> both modules. This means NeoForge classes are on the classpath in `common/`,
-> but separation is enforced by convention (no NeoForge event types in common
-> handler signatures). When Fabric is added, registries and any remaining
-> NeoForge-specific imports in common/ will be abstracted at that time.
 
 ---
 
@@ -50,12 +41,12 @@ task with no refactoring risk.
 
 | Decision | Choice | Why |
 |----------|--------|-----|
-| Multi-loader toolchain | NeoForge ModDev for both modules | Architectury Maven unreachable; ModDev provides Minecraft classes for common/ |
+| Multi-loader toolchain | Architectury Loom + API | Need it eventually for Fabric; better to prove it works now than discover issues later |
 | Modules in this phase | `common` + `neoforge` only | Derisk the restructure; Fabric module is a separate effort |
 | Config abstraction | `ModConfigValues` static class in common | Simplest approach; NeoForge `ModConfigSpec` syncs values on load/reload |
-| Registry approach | NeoForge `DeferredRegister` in common (for now) | Works since ModDev is on classpath; abstract when Fabric is added |
+| Registry approach | Architectury `DeferredRegister` in common | Drop-in replacement for NeoForge `DeferredRegister`; works on both loaders |
 | Event handling | Common handlers accept vanilla params; NeoForge module dispatches | Clean seam; each handler is testable without a loader |
-| CI | Single `./gradlew build` (no matrix yet) | Add matrix when Fabric module exists |
+| CI | Single `neoforge:build` task (no matrix yet) | Add matrix when Fabric module exists |
 
 ---
 
