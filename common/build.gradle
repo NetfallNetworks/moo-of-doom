@@ -25,11 +25,12 @@ dependencies {
     // NeoForge API (DeferredRegister, DeferredItem, etc.) at compile time only.
     // At runtime the neoforge module provides these classes.
     compileOnly "net.neoforged:neoforge:${rootProject.neo_version}"
-
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-test {
-    useJUnitPlatform()
+testing {
+    suites {
+        test {
+            useJUnitJupiter('5.11.0')
+        }
+    }
 }
