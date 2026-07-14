@@ -96,18 +96,24 @@ public class RebellionHandler {
         } else {
             // Clean up rebel cows near this player that no longer need to be aggressive
             // We do a wider range check to catch cows that were made rebels
-            int range = ModConfig.REBELLION_RANGE.getAsInt() + 8;
-            AABB searchBox = player.getBoundingBox().inflate(range);
+            int range = ModConfig.REBELLION_RANGE.getAsInt();
+            int searchRange = range + 8;
+            AABB searchBox = player.getBoundingBox().inflate(searchRange);
             List<Cow> nearbyCows = player.level().getEntitiesOfClass(Cow.class, searchBox);
+            if (nearbyCows.isEmpty()) return;
+
+            // One query per pass instead of one per cow (issue #22): every player with
+            // Rebellion who could be within `range` of any cow in the search box
+            List<Player> rebelliousPlayers = player.level().getEntitiesOfClass(Player.class,
+                    player.getBoundingBox().inflate(searchRange + range),
+                    p -> p.hasEffect(ModEffects.REBELLION));
 
             for (Cow cow : nearbyCows) {
                 if (RebellionBehavior.INSTANCE.isActive(cow) && !OpCowManager.isOpCow(cow)) {
-                    // Check if any nearby player still has rebellion
+                    AABB cowRange = cow.getBoundingBox().inflate(range);
                     boolean anyRebellion = false;
-                    List<Player> nearbyPlayers = cow.level().getEntitiesOfClass(Player.class,
-                            cow.getBoundingBox().inflate(ModConfig.REBELLION_RANGE.getAsInt()));
-                    for (Player p : nearbyPlayers) {
-                        if (p.hasEffect(ModEffects.REBELLION)) {
+                    for (Player p : rebelliousPlayers) {
+                        if (cowRange.intersects(p.getBoundingBox())) {
                             anyRebellion = true;
                             break;
                         }
