@@ -58,6 +58,16 @@ public class OpCowManager {
         if (!(entity instanceof Cow cow)) return;
         if (event.getLevel().isClientSide()) return;
 
+        // Companion (morph disguise) cows are never OP-activated (issue #21). A companion
+        // joining without a live morph managing it is an orphan (crash, or persisted from
+        // before the logout fix) — cancel the join so it never enters the world (issue #20).
+        if (cow.getTags().contains(CowMorphHandler.COMPANION_TAG)) {
+            if (!CowMorphHandler.isManagedCompanion(cow.getId())) {
+                event.setCanceled(true);
+            }
+            return;
+        }
+
         // Log the activation mode once for diagnostics (helps catch stale config files)
         if (!loggedActivationMode) {
             loggedActivationMode = true;

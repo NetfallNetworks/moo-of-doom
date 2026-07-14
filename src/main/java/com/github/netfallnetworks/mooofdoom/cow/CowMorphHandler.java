@@ -12,6 +12,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.cow.Cow;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 import java.util.HashMap;
@@ -27,8 +28,19 @@ public class CowMorphHandler {
     // Track morphed players: player UUID -> companion cow entity ID
     private static final Map<UUID, Integer> morphedPlayers = new HashMap<>();
 
+    public static final String COMPANION_TAG = "MooOfDoom_Companion";
+
     public static void startMorph(Player player, int durationTicks) {
         if (!(player.level() instanceof ServerLevel level)) return;
+
+        // Discard any previous companion (e.g. orphan from a re-morph) before spawning
+        Integer existingId = morphedPlayers.remove(player.getUUID());
+        if (existingId != null) {
+            Entity existing = level.getEntity(existingId);
+            if (existing != null) {
+                existing.discard();
+            }
+        }
 
         // Spawn companion cow at player position
         Cow cow = new Cow(EntityType.COW, level);
@@ -37,10 +49,12 @@ public class CowMorphHandler {
         cow.setInvulnerable(true);
         cow.setNoAi(true);
         cow.setSilent(true);
-        cow.addTag("MooOfDoom_Companion");
-        level.addFreshEntity(cow);
+        cow.addTag(COMPANION_TAG);
 
+        // Register BEFORE addFreshEntity: spawning fires EntityJoinLevelEvent synchronously,
+        // and OpCowManager's companion guard discards companions it can't find here.
         morphedPlayers.put(player.getUUID(), cow.getId());
+        level.addFreshEntity(cow);
 
         // Particle effects
         level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING,
@@ -54,6 +68,24 @@ public class CowMorphHandler {
         }
 
         MooOfDoom.LOGGER.info("Player {} morphed into a cow!", player.getName().getString());
+    }
+
+    /** True if this entity ID is a companion cow currently managed by a live morph. */
+    public static boolean isManagedCompanion(int entityId) {
+        return morphedPlayers.containsValue(entityId);
+    }
+
+    /**
+     * End the morph on disconnect — otherwise the player entity stops ticking and the
+     * invulnerable companion cow is stranded in the world forever (issue #20).
+     */
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        Player player = event.getEntity();
+        if (player.level().isClientSide()) return;
+        if (isMorphed(player)) {
+            endMorph(player);
+        }
     }
 
     @SubscribeEvent
