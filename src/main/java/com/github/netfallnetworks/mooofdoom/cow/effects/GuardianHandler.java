@@ -61,6 +61,10 @@ public class GuardianHandler {
             AABB searchBox = player.getBoundingBox().inflate(range);
             List<Cow> nearbyCows = player.level().getEntitiesOfClass(Cow.class, searchBox);
 
+            // One query for all cows — the box depends only on the player (issue #22)
+            List<Monster> nearbyMonsters = player.level().getEntitiesOfClass(Monster.class,
+                    player.getBoundingBox().inflate(range));
+
             for (Cow cow : nearbyCows) {
                 // Activate guardian AI (tag-gated) — OP cows keep their own combat AI
                 if (!OpCowManager.isOpCow(cow)) {
@@ -76,8 +80,6 @@ public class GuardianHandler {
                 }
 
                 // Find and target nearby hostile mobs threatening the player
-                List<Monster> nearbyMonsters = player.level().getEntitiesOfClass(Monster.class,
-                        player.getBoundingBox().inflate(range));
                 if (!nearbyMonsters.isEmpty()) {
                     // Target the closest monster
                     Monster closest = null;
