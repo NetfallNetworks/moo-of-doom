@@ -103,9 +103,11 @@ public class RebellionHandler {
             if (nearbyCows.isEmpty()) return;
 
             // One query per pass instead of one per cow (issue #22): every player with
-            // Rebellion who could be within `range` of any cow in the search box
+            // Rebellion who could be within `range` of any cow in the search box.
+            // +2 covers entity bounding-box extents (cow + player AABBs) so the pool is
+            // a strict superset of the old per-cow queries.
             List<Player> rebelliousPlayers = player.level().getEntitiesOfClass(Player.class,
-                    player.getBoundingBox().inflate(searchRange + range),
+                    player.getBoundingBox().inflate(searchRange + range + 2),
                     p -> p.hasEffect(ModEffects.REBELLION));
 
             for (Cow cow : nearbyCows) {
