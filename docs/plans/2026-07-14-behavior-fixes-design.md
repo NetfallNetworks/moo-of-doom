@@ -102,8 +102,9 @@ keeps the test free of Minecraft classloading, per repo test convention.
 Behavior-identical perf fixes in the two handlers PR-A already touches:
 
 - **`GuardianHandler.onPlayerTick`** — the `getEntitiesOfClass(Monster.class, ...)` query at
-  lines 86-87 depends only on `player`; hoist the query and the closest-monster computation
-  above the `for (Cow cow : nearbyCows)` loop. 30 cows × 5 zombies: 1 scan instead of 30.
+  lines 86-87 depends only on `player`; hoist the query above the `for (Cow cow : nearbyCows)`
+  loop (the closest-monster selection is cow-relative and stays per-cow). 30 cows × 5
+  zombies: 1 scan instead of 30.
 - **`RebellionHandler.onPlayerTick` cleanup branch** — compute the set of nearby players that
   still have Rebellion once per pass, instead of a fresh `getEntitiesOfClass(Player.class, ...)`
   scan per rebel-tagged cow (currently O(players × cows × players) every 20 ticks).
