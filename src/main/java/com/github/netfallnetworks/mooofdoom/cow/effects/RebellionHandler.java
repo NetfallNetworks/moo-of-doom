@@ -3,12 +3,11 @@ package com.github.netfallnetworks.mooofdoom.cow.effects;
 import com.github.netfallnetworks.mooofdoom.ModConfig;
 import com.github.netfallnetworks.mooofdoom.MooOfDoom;
 import com.github.netfallnetworks.mooofdoom.cow.OpCowManager;
+import com.github.netfallnetworks.mooofdoom.cow.behavior.RebellionBehavior;
 import com.github.netfallnetworks.mooofdoom.registry.ModCriteriaTriggers;
 import com.github.netfallnetworks.mooofdoom.registry.ModEffects;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.animal.cow.Cow;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -20,8 +19,6 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import java.util.List;
 
 public class RebellionHandler {
-
-    private static final String REBEL_TAG = "MooOfDoom_Rebel";
 
     /**
      * Trigger rebellion when a player attacks any cow.
@@ -91,12 +88,8 @@ public class RebellionHandler {
                     // OP cows: just set target to the player
                     cow.setTarget(player);
                 } else {
-                    // Vanilla cows: add temporary combat goals and target the player
-                    if (!cow.getTags().contains(REBEL_TAG)) {
-                        cow.addTag(REBEL_TAG);
-                        cow.goalSelector.addGoal(1, new MeleeAttackGoal(cow, 1.2, true));
-                        cow.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(cow, Player.class, true));
-                    }
+                    // Vanilla cows: activate tag-gated rebel combat AI
+                    RebellionBehavior.INSTANCE.activate(cow);
                     cow.setTarget(player);
                 }
             }
@@ -108,7 +101,7 @@ public class RebellionHandler {
             List<Cow> nearbyCows = player.level().getEntitiesOfClass(Cow.class, searchBox);
 
             for (Cow cow : nearbyCows) {
-                if (cow.getTags().contains(REBEL_TAG) && !OpCowManager.isOpCow(cow)) {
+                if (RebellionBehavior.INSTANCE.isActive(cow) && !OpCowManager.isOpCow(cow)) {
                     // Check if any nearby player still has rebellion
                     boolean anyRebellion = false;
                     List<Player> nearbyPlayers = cow.level().getEntitiesOfClass(Player.class,
@@ -120,9 +113,8 @@ public class RebellionHandler {
                         }
                     }
                     if (!anyRebellion) {
-                        cow.removeTag(REBEL_TAG);
+                        RebellionBehavior.INSTANCE.deactivate(cow);
                         cow.setTarget(null);
-                        // Goals will naturally stop when target is null
                     }
                 }
             }

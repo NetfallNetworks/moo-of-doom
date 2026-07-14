@@ -2,9 +2,7 @@ package com.github.netfallnetworks.mooofdoom.cow;
 
 import com.github.netfallnetworks.mooofdoom.ModConfig;
 import com.github.netfallnetworks.mooofdoom.MooOfDoom;
-import com.github.netfallnetworks.mooofdoom.cow.combat.ChargeGoal;
-import com.github.netfallnetworks.mooofdoom.cow.combat.HostileTargetGoal;
-import com.github.netfallnetworks.mooofdoom.cow.combat.MilkProjectileGoal;
+import com.github.netfallnetworks.mooofdoom.cow.behavior.OpCowCombatBehavior;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -27,7 +25,7 @@ public class OpCowManager {
         cow.addTag(OP_TAG);
         boostAttributes(cow);
         cow.setGlowingTag(true);
-        addCombatGoals(cow);
+        OpCowCombatBehavior.INSTANCE.ensureInstalled(cow);
     }
 
     private static void boostAttributes(Cow cow) {
@@ -54,18 +52,6 @@ public class OpCowManager {
         }
     }
 
-    public static void addCombatGoals(Cow cow) {
-        cow.targetSelector.addGoal(1, new HostileTargetGoal(cow));
-
-        if (ModConfig.CHARGE_ATTACK_ENABLED.getAsBoolean()) {
-            cow.goalSelector.addGoal(2, new ChargeGoal(cow));
-        }
-
-        if (ModConfig.MILK_PROJECTILE_ENABLED.getAsBoolean()) {
-            cow.goalSelector.addGoal(3, new MilkProjectileGoal(cow));
-        }
-    }
-
     @SubscribeEvent
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
         Entity entity = event.getEntity();
@@ -84,11 +70,12 @@ public class OpCowManager {
             }
         }
 
-        // If already OP, re-apply attributes (they reset on load)
+        // If already OP, re-apply attributes (they reset on load) and reinstall
+        // combat goals idempotently (goal selectors are never serialized)
         if (isOpCow(cow)) {
             boostAttributes(cow);
             cow.setGlowingTag(true);
-            addCombatGoals(cow);
+            OpCowCombatBehavior.INSTANCE.ensureInstalled(cow);
             return;
         }
 

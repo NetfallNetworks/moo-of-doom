@@ -1,6 +1,7 @@
 package com.github.netfallnetworks.mooofdoom.cow;
 
 import com.github.netfallnetworks.mooofdoom.MooOfDoom;
+import com.github.netfallnetworks.mooofdoom.cow.behavior.ProtectorBehavior;
 import com.github.netfallnetworks.mooofdoom.rarity.RarityTier;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -9,9 +10,6 @@ import net.minecraft.world.entity.ConversionParams;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.PathfinderMob;
-import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.animal.cow.Cow;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
@@ -20,9 +18,7 @@ import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -31,10 +27,8 @@ import java.util.UUID;
  */
 public class MobConversionHandler {
 
-    // Track protector mobs: mob entity ID -> protector data
-    private static final Map<Integer, ProtectorData> protectors = new HashMap<>();
-
-    record ProtectorData(UUID ownerUUID, long expireTime) {}
+    private static final String PROTECTOR_OWNER_KEY = "MooOfDoom_ProtectorOwner";
+    private static final String PROTECTOR_UNTIL_KEY = "MooOfDoom_ProtectorUntil";
 
     public static void applyHostileConversion(Mob mob, Player player, RarityTier tier) {
         MooOfDoom.LOGGER.info("Doom Apple fed to {} — rolled {}", mob.getType().getDescriptionId(), tier);
@@ -50,14 +44,12 @@ public class MobConversionHandler {
         // Cancel hostility toward the player
         mob.setTarget(null);
 
-        // Add combat goals for protecting the player
-        if (mob instanceof PathfinderMob pathfinderMob) {
-            mob.goalSelector.addGoal(1, new MeleeAttackGoal(pathfinderMob, 1.2, true));
-        }
-        mob.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(mob, Monster.class, true));
+        // Tag-gated protector combat AI (goals go inert when the tag is stripped)
+        ProtectorBehavior.INSTANCE.activate(mob);
 
-        // Track as protector with 30s expiry
-        protectors.put(mob.getId(), new ProtectorData(player.getUUID(), mob.tickCount + 600));
+        // Persist owner + absolute expiry so the window survives chunk unload/reload
+        mob.getPersistentData().putString(PROTECTOR_OWNER_KEY, player.getUUID().toString());
+        mob.getPersistentData().putLong(PROTECTOR_UNTIL_KEY, mob.level().getGameTime() + 600);
 
         // Visual effects
         if (mob.level() instanceof ServerLevel serverLevel) {
@@ -99,19 +91,18 @@ public class MobConversionHandler {
     }
 
     /**
-     * Tick handler: make protector mobs follow their owner and expire after 30s.
+     * Tick handler: make protector mobs follow their owner and expire after 30s (game time).
      */
     @SubscribeEvent
     public static void onMobTick(EntityTickEvent.Post event) {
         if (!(event.getEntity() instanceof Mob mob)) return;
         if (mob.level().isClientSide()) return;
+        if (!ProtectorBehavior.INSTANCE.isActive(mob)) return;
 
-        ProtectorData data = protectors.get(mob.getId());
-        if (data == null) return;
-
-        // Check expiry
-        if (mob.tickCount >= data.expireTime || !mob.isAlive()) {
-            protectors.remove(mob.getId());
+        // Check expiry against absolute game time (survives unload/reload)
+        long until = mob.getPersistentData().getLongOr(PROTECTOR_UNTIL_KEY, 0L);
+        if (mob.level().getGameTime() >= until || !mob.isAlive()) {
+            ProtectorBehavior.INSTANCE.deactivate(mob);
             mob.setTarget(null);
             return;
         }
@@ -119,7 +110,9 @@ public class MobConversionHandler {
         // Navigate toward owner (every 20 ticks for performance)
         if (mob.tickCount % 20 == 0) {
             ServerLevel level = (ServerLevel) mob.level();
-            Player owner = level.getServer().getPlayerList().getPlayer(data.ownerUUID);
+            String ownerString = mob.getPersistentData().getStringOr(PROTECTOR_OWNER_KEY, "");
+            if (ownerString.isEmpty()) return;
+            Player owner = level.getServer().getPlayerList().getPlayer(UUID.fromString(ownerString));
             if (owner != null && owner.level() == mob.level()) {
                 double distSq = mob.distanceToSqr(owner);
                 if (distSq > 9.0) {
@@ -133,7 +126,7 @@ public class MobConversionHandler {
                 double closestDist = Double.MAX_VALUE;
                 for (Monster monster : nearbyMonsters) {
                     if (monster == mob) continue;
-                    if (protectors.containsKey(monster.getId())) continue; // Don't target other protectors
+                    if (ProtectorBehavior.INSTANCE.isActive(monster)) continue; // Don't target other protectors
                     double d = mob.distanceToSqr(monster);
                     if (d < closestDist) {
                         closestDist = d;

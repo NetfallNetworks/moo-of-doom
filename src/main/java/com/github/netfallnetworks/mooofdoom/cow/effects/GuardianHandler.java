@@ -3,13 +3,11 @@ package com.github.netfallnetworks.mooofdoom.cow.effects;
 import com.github.netfallnetworks.mooofdoom.ModConfig;
 import com.github.netfallnetworks.mooofdoom.MooOfDoom;
 import com.github.netfallnetworks.mooofdoom.cow.OpCowManager;
+import com.github.netfallnetworks.mooofdoom.cow.behavior.GuardianBehavior;
 import com.github.netfallnetworks.mooofdoom.registry.ModCriteriaTriggers;
 import com.github.netfallnetworks.mooofdoom.registry.ModEffects;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.animal.cow.Cow;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
@@ -22,8 +20,6 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import java.util.List;
 
 public class GuardianHandler {
-
-    private static final String GUARDIAN_TAG = "MooOfDoom_Guardian";
 
     /**
      * Trigger: Player feeds wheat to any cow -> apply Guardian buff.
@@ -66,14 +62,11 @@ public class GuardianHandler {
             List<Cow> nearbyCows = player.level().getEntitiesOfClass(Cow.class, searchBox);
 
             for (Cow cow : nearbyCows) {
-                // Tag the cow as a guardian follower if not already
-                if (!cow.getTags().contains(GUARDIAN_TAG)) {
-                    cow.addTag(GUARDIAN_TAG);
-                    // Add combat capability for vanilla cows
-                    if (!OpCowManager.isOpCow(cow)) {
-                        cow.goalSelector.addGoal(1, new MeleeAttackGoal(cow, 1.2, true));
-                        cow.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(cow, Monster.class, true));
-                    }
+                // Activate guardian AI (tag-gated) — OP cows keep their own combat AI
+                if (!OpCowManager.isOpCow(cow)) {
+                    GuardianBehavior.INSTANCE.activate(cow);
+                } else if (!GuardianBehavior.INSTANCE.isActive(cow)) {
+                    cow.addTag(GuardianBehavior.TAG);
                 }
 
                 // Navigate cow toward the player
@@ -108,7 +101,7 @@ public class GuardianHandler {
             List<Cow> nearbyCows = player.level().getEntitiesOfClass(Cow.class, searchBox);
 
             for (Cow cow : nearbyCows) {
-                if (cow.getTags().contains(GUARDIAN_TAG)) {
+                if (GuardianBehavior.INSTANCE.isActive(cow)) {
                     // Check if any nearby player still has guardian
                     boolean anyGuardian = false;
                     List<Player> nearbyPlayers = cow.level().getEntitiesOfClass(Player.class,
@@ -120,7 +113,7 @@ public class GuardianHandler {
                         }
                     }
                     if (!anyGuardian) {
-                        cow.removeTag(GUARDIAN_TAG);
+                        GuardianBehavior.INSTANCE.deactivate(cow);
                         cow.setTarget(null);
                         cow.getNavigation().stop();
                     }
