@@ -6,6 +6,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -32,6 +33,8 @@ public class CowMorphHandler {
 
     public static void startMorph(Player player, int durationTicks) {
         if (!(player.level() instanceof ServerLevel level)) return;
+
+        player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, durationTicks, 0, false, false, true));
 
         // Discard any previous companion (e.g. orphan from a re-morph) before spawning
         Integer existingId = morphedPlayers.remove(player.getUUID());
